@@ -29,20 +29,24 @@ type Phase = "observe" | "think" | "decide" | "act" | "reflect" | "idle";
 type Status = "idle" | "running" | "thinking";
 
 // ── API ──────────────────────────────────────────────────────────────────────
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
+
 async function callClaude(system: string, user: string): Promise<string | null> {
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        system,
-        messages: [{ role: "user", content: user }],
-      }),
-    });
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: system }] },
+          contents: [{ role: "user", parts: [{ text: user }] }],
+          generationConfig: { maxOutputTokens: 1000, temperature: 0.7 },
+        }),
+      }
+    );
     const data = await res.json();
-    return data.content.map((b: { text?: string }) => b.text || "").join("");
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
   } catch {
     return null;
   }
